@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# wpfunctions - general bash functions for use in WordPress bash scripts
+#
+# Copyright 2020 Rene Kreijveld - email@renekreijveld.nl
+#
+# This program is free software; you may redistribute it and/or modify it.
+#
+# This script needs the WordPress CLI, see https://wp-cli.org/
+#
+# Version history
+# 1.0 Initial version
+
+# Define general variables
+version=1.0
+
+# Check if configuration.php exists.
+if [ ! -e ./wp-config.php ]
+	then
+	echo ""
+	echo "File wp-config.php not found. Are you at the root of the site?"
+	echo ""
+	exit 1
+fi
+
+# Find MySQL Socket
+if [ -S /var/lib/mysql/mysql.sock ]; then
+	mysock=/var/lib/mysql/mysql.sock
+elif [ -S /var/run/mysqld/mysqld.sock ]; then
+	mysock=/var/run/mysqld/mysqld.sock
+elif [ -S /Applications/MAMP/tmp/mysql/mysql.sock ]; then
+	mysock=/Applications/MAMP/tmp/mysql/mysql.sock
+elif [ -S /tmp/mysql.sock ]; then
+	mysock=/tmp/mysql.sock
+fi
+
+# Grab information from then WordPress configuration.
+database=$(grep 'DB_NAME' ./wp-config.php | cut -d \' -f 4)
+dbuser=$(grep 'DB_USER' ./wp-config.php | cut -d \' -f 4)
+password=$(grep 'DB_PASSWORD' ./wp-config.php | cut -d \' -f 4)
+host=$(grep 'DB_HOST' ./wp-config.php | cut -d \' -f 4)
+prefix=$(grep 'table_prefix' ./wp-config.php | cut -d \' -f 2)
+wpversion=$(grep 'wp_version =' ./wp-includes/version.php | cut -d \' -f 2)
+sitename=$(wp --allow-root db query "SELECT * FROM ${prefix}options" | grep blogname | cut -f 3 | sed 's/ /_/g')
+sitenameclean=$(wp --allow-root db query "SELECT * FROM ${prefix}options" | grep blogname | cut -f 3)

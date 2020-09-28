@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# wpdbimp -- Import a sql file into a WordPress database.
+#
+# Copyright 2020 Rene Kreijveld - email@renekreijveld.nl
+#
+# This program is free software; you may redistribute it and/or modify it.
+#
+# Warning! This script needs the file wpfunctions. This has to be installed in the same directory as this script.
+# This script also needs the WordPress CLI, see https://wp-cli.org/
+#
+# Version history
+# 1.0 Initial version
+
+# version
+version=1.0
+
+# general variables
+mypath=$(cd $(dirname ${0}); pwd -P)
+myname=$(basename ${0})
+
+# include general functions
+if [ ! -e ${mypath}/wpfunctions ]
+then
+	echo ""
+	echo "Cannot continue: script wpfunctions not found."
+	echo ""
+	exit 1
+else
+	. ${mypath}/wpfunctions
+fi
+
+# display usage information
+usage() {
+	echo ""
+	echo "${myname} version ${version}, written by Rene Kreijveld."
+	echo ""
+	echo "Usage: ${myname} [-s] [-h] <sqlfile>"
+	echo ""
+	echo "<sqlfile> is the .sql file to import (mandatory)."
+	echo "-s Silent. No progress messages will be shown."
+	echo "-h Help. Display this info."
+	echo ""
+	exit 0
+}
+
+# process the arguments
+silent="no"
+sqlfile=""
+
+# process the arguments
+while getopts hs opt; do
+	case "${opt}" in
+		h)
+			usage
+			;;
+		2)
+			silent="yes"
+			;;
+		\?)
+			echo "Invalid option: -$OPTARG" >&2
+			exit 1
+			;;
+	esac
+done
+
+shift $((OPTIND-1))
+
+# check if import file was specified
+if [ $# -ne 0 ]
+then
+	sqlfile=$1
+else
+	usage
+	exit 1
+fi
+
+if [ "${silent}" == "no" ]
+then
+	echo ""
+	echo "${myname} version ${version}, written by Rene Kreijveld."
+	echo ""
+	echo "This is a WordPress ${wpversion} site. Starting database import of ${sqlfile}"
+fi
+
+# check if import file exists
+if [ ! -e ${sqlfile} ]
+then
+	echo ""
+	echo "Error: sql file ${sqlfile} not found."
+	echo ""
+	exit 1
+fi
+
+if [ "${silent}" == "no" ]
+then
+	wp --allow-root db import ${sqlfile}
+else
+	wp --allow-root db import ${sqlfile} --quiet
+fi
+
+if [ "${silent}" == "no" ]
+then
+	echo "Database dump ${sqlfile} imported."
+fi

@@ -1,0 +1,80 @@
+#!/bin/bash
+
+# wpbackup -- Create a full backup (including database) of a WordPress website to .tgz file.
+#
+# Copyright 2020 Rene Kreijveld - email@renekreijveld.nl
+#
+# This program is free software; you may redistribute it and/or modify it.
+#
+# Warning! This script needs the file wpfunctions. This has to be installed in the same directory as this script.
+#
+# Version history
+# 1.0 Initial version
+
+# Version
+version=1.0
+
+# Determine path of script
+mypath=$(cd $(dirname ${0}); pwd -P)
+myname=$(basename ${0})
+
+# display usage information
+usage() {
+	echo ""
+	echo "${myname} version ${version}, written by Rene Kreijveld."
+	echo ""
+	echo "Usage: ${myname} [-z] [-h]"
+	echo ""
+	echo "Default action is .tgz backup."
+	echo "-z Zip. Backup to a zipfile instead of a tgzfile."
+	echo "-h Help. Display this info."
+	echo ""
+	echo "Run ${myname} at the root of your website, where the wp-config.php is."
+	echo ""
+	exit 0
+}
+
+# Default no zipfile
+zip="no"
+
+# process the arguments
+while getopts zth opt; do
+	case "${opt}" in
+		z) zip="yes";;
+		h) usage;;
+		\?) usage;;
+	esac
+done
+
+# include general functions
+. ${mypath}/wpfunctions
+
+echo ""
+echo "${myname} version ${version}, written by Rene Kreijveld."
+echo ""
+echo "This is a WordPress ${wpversion} site. Starting backup..."
+
+# dump the database to a .sql file
+echo "Creating database dump..."
+wp --allow-root db export dbdump.sql --add-drop-table
+
+# check if htaccess is present
+if [ -e .htaccess ]; then
+	htaccess=".htaccess"
+else
+	htaccess=""
+fi
+
+# create the backup
+if [ "${zip}" == "no" ]; then
+	tar czf ${sitename}.tgz ${htaccess} *
+	echo "Your backup is ready in ${sitename}.tgz:"
+	ls -l ${sitename}.tgz
+else
+	zip -q -r ${sitename}.zip ${htaccess} *
+	echo "Your backup is ready in ${sitename}.zip:"
+	ls -l ${sitename}.zip
+fi
+
+# cleanup datebase dump
+rm -f dbdump.sql
